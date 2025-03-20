@@ -1,37 +1,241 @@
-import { createApiBuilderFromCtpClient } from '@commercetools/platform-sdk';
-import { ClientBuilder } from '@commercetools/sdk-client-v2';
+import { apiRoot } from './client';
+import { 
+  Cart, 
+  MyCartUpdateAction,
+  Order,
+  Address
+} from '@commercetools/platform-sdk';
+import { logApiResponse } from './commerce-debug';
 
-// Get environment variables with fallbacks and type assertions to avoid TypeScript errors
-const projectKey = process.env.NEXT_PUBLIC_CTP_PROJECT_KEY || '';
-const authUrl = process.env.NEXT_PUBLIC_CTP_AUTH_URL || '';
-const apiUrl = process.env.NEXT_PUBLIC_CTP_API_URL || '';
-const clientId = process.env.CTP_CLIENT_ID || '';
-const clientSecret = process.env.CTP_CLIENT_SECRET || '';
-const scopeValue = process.env.NEXT_PUBLIC_CTP_SCOPE || '';
+// Product Selection constants
+const WITCHER_PRODUCT_SELECTION_ID = 'c596663f-797e-44b5-993a-d0ae6f5108e4';
+const SHIPPING_METHOD_ID = '767b2262-41e8-4dfb-84f3-ccb720edfb34';
 
-// Define scopes array properly
-const scopes = scopeValue ? [scopeValue] : [];
+// Default shipping address
+export const DEFAULT_SHIPPING_ADDRESS: Address = {
+  firstName: 'Geralt',
+  lastName: 'of Rivia',
+  streetName: '123 Witcher Way',
+  postalCode: '2000',
+  city: 'Sydney',
+  country: 'AU',
+  phone: '+61412345678',
+  email: 'geralt@kaermorhen.com'
+};
 
-// Create the client with type-safe configuration
-const ctpClient = new ClientBuilder()
-  .withClientCredentialsFlow({
-    host: authUrl,
-    projectKey,
-    credentials: {
-      clientId,
-      clientSecret,
-    },
-    scopes,
-  })
-  .withHttpMiddleware({
-    host: apiUrl,
-  })
-  .build();
+// Fetch Witcher books using product search endpoint
+export async function fetchWitcherBooks(): Promise<any> {
+  try {
+    console.log('Fetching Witcher books with product selection ID:', WITCHER_PRODUCT_SELECTION_ID);
+    
+    // Create the search query
+    const searchQuery = {
+      query: {
+        exact: {
+          field: "productSelections",
+          value: WITCHER_PRODUCT_SELECTION_ID
+        }
+      },
+      productProjectionParameters: {},
+      limit: 20,
+      offset: 0,
+      sort: [
+        {
+          field: "name",
+          language: "en-AU",
+          order: "asc"
+        }
+      ],
+      projection: {
+        includeVariants: true
+      }
+    };
+    
+    console.log('Using search query:', JSON.stringify(searchQuery, null, 2));
+    
+    // Make the API call to the products search endpoint
+    const response = await apiRoot
+      .products()
+      .search()
+      .post({
+        body: searchQuery
+      })
+      .execute();
+    
+    logApiResponse('Witcher Books Search', response);
+    
+    // If no results, try a simpler query
+    if (response.body.results.length === 0) {
+      console.log('No books found. Trying a simpler query...');
+      
+      // Try a simpler query without filtering
+      const testQuery = {
+        limit: 5,
+        offset: 0
+      };
+      
+      const testResponse = await apiRoot
+        .products()
+        .search()
+        .post({
+          body: testQuery
+        })
+        .execute();
+      
+      logApiResponse('Test Query', testResponse);
+    }
+    
+    return response.body;
+  } catch (error:any) {
+    console.error('Error fetching Witcher books:', error);
+    if (error.body) {
+      console.error('Error details:', error.body);
+    }
+    throw error;
+  }
+}
 
-// Create the API root
-const apiRoot = createApiBuilderFromCtpClient(ctpClient).withProjectKey({ projectKey });
+// Create a new anonymous cart
+export async function createCart(): Promise<Cart> {
+  try {
+    const response = await apiRoot
+      .carts()
+      .post({
+        body: {
+          currency: 'AUD',
+          country: 'AU',
+          inventoryMode: 'ReserveOnOrder',
+          taxMode: 'Platform',
+          shippingAddress: DEFAULT_SHIPPING_ADDRESS
+        }
+      })
+      .execute();
+    
+    return response.body;
+  } catch (error) {
+    console.error('Error creating cart:', error);
+    throw error;
+  }
+}
 
+// Get cart by ID
+export async function getCart(cartId: string): Promise<Cart> {
+  try {
+    const response = await apiRoot
+      .carts()
+      .withId({ ID: cartId })
+      .get()
+      .execute();
+    
+    return response.body;
+  } catch (error) {
+    console.error('Error getting cart:', error);
+    throw error;
+  }
+}
 
-// Export both the new apiRoot approach and the legacy getRequestBuilder for compatibility
-export { apiRoot };
-export default ctpClient;
+// Update cart with actions
+export async function updateCart(cartId: string, version: number, actions: MyCartUpdateAction[]): Promise<Cart> {
+  try {
+    const response = await apiRoot
+      .carts()
+      .withId({ ID: cartId })
+      .post({
+        body: {
+          version,
+          actions
+        }
+      })
+      .execute();
+    
+    return response.body;
+  } catch (error) {
+    console.error('Error updating cart:', error);
+    throw error;
+  }
+}
+
+// Add item to cart
+export async function addToCart(cartId: string, version: number, productId: string, quantity: number = 1): Promise<Cart> {
+  return updateCart(cartId, version, [
+    {
+      action: 'addLineItem',
+      productId,
+      quantity
+    }
+  ]);
+}
+
+// Remove item from cart
+export async function removeFromCart(cartId: string, version: number, lineItemId: string): Promise<Cart> {
+  return updateCart(cartId, version, [
+    {
+      action: 'removeLineItem',
+      lineItemId
+    }
+  ]);
+}
+
+// Update line item quantity
+export async function updateLineItemQuantity(cartId: string, version: number, lineItemId: string, quantity: number): Promise<Cart> {
+  return updateCart(cartId, version, [
+    {
+      action: 'changeLineItemQuantity',
+      lineItemId,
+      quantity
+    }
+  ]);
+}
+
+// Add shipping method to cart
+export async function addShippingMethod(cartId: string, version: number): Promise<Cart> {
+  return updateCart(cartId, version, [
+    {
+      action: 'setShippingMethod',
+      shippingMethod: {
+        id: SHIPPING_METHOD_ID,
+        typeId: 'shipping-method'
+      }
+    }
+  ]);
+}
+
+// Set shipping address on cart
+export async function setShippingAddress(cartId: string, version: number, address: Address = DEFAULT_SHIPPING_ADDRESS): Promise<Cart> {
+  return updateCart(cartId, version, [
+    {
+      action: 'setShippingAddress',
+      address
+    }
+  ]);
+}
+
+// Create order from cart
+export async function createOrderFromCart(cartId: string, version: number): Promise<Order> {
+  try {
+    // Make sure shipping method is set
+    await addShippingMethod(cartId, version);
+    
+    // Get updated cart after adding shipping
+    const updatedCart = await getCart(cartId);
+    
+    // Create order from cart
+    const response = await apiRoot
+      .orders()
+      .post({
+        body: {
+          cart: {
+            id: cartId,
+            typeId: 'cart'
+          },
+          version: updatedCart.version
+        }
+      })
+      .execute();
+    
+    return response.body;
+  } catch (error) {
+    console.error('Error creating order from cart:', error);
+    throw error;
+  }
+}

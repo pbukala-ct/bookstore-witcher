@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Outer circle -->
+  <circle cx="50" cy="50" r="45" fill="#1a1a1a" stroke="#daa520" stroke-width="2" />
+  
+  <!-- Wolf head silhouette -->
+  <path d="M50 15 
+           C60 25, 75 30, 80 40
+           C85 50, 80 65, 75 70
+           C70 75, 65 75, 60 78
+           C55 80, 45 80, 40 78
+           C35 75, 30 75, 25 70
+           C20 65, 15 50, 20 40
+           C25 30, 40 25, 50 15Z" 
+        fill="#8b0000" />
+  
+  <!-- Eyes -->
+  <circle cx="40" cy="45" r="3" fill="#daa520" />
+  <circle cx="60" cy="45" r="3" fill="#daa520" />
+  
+  <!-- Nose and mouth -->
+  <path d="M50 55 L45 60 L50 65 L55 60 L50 55" fill="#daa520" />
+  <path d="M45 60 L35 65 M55 60 L65 65" stroke="#daa520" stroke-width="2" fill="none" />
+  
+  <!-- Chain links -->
+  <circle cx="30" cy="15" r="3" fill="none" stroke="#daa520" stroke-width="1.5" />
+  <circle cx="24" cy="20" r="3" fill="none" stroke="#daa520" stroke-width="1.5" />
+  <circle cx="18" cy="25" r="3" fill="none" stroke="#daa520" stroke-width="1.5" />
+  <circle cx="70" cy="15" r="3" fill="none" stroke="#daa520" stroke-width="1.5" />
+  <circle cx="76" cy="20" r="3" fill="none" stroke="#daa520" stroke-width="1.5" />
+  <circle cx="82" cy="25" r="3" fill="none" stroke="#daa520" stroke-width="1.5" />
+</svg>
