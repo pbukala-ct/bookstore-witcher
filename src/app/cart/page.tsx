@@ -4,13 +4,20 @@ import React from 'react';
 import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { CartItem } from '@/components/CartItem';
+import { CheckoutAddressForm } from '@/components/CheckoutAddressForm';
 
 export default function CartPage() {
   const { cart, loading, totalItems, totalPrice, checkout } = useCart();
   const [orderId, setOrderId] = React.useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
+  const [showCheckoutForm, setShowCheckoutForm] = React.useState(false);
 
   const handleCheckout = async () => {
+    if (!showCheckoutForm) {
+      setShowCheckoutForm(true);
+      return;
+    }
+    
     setIsCheckingOut(true);
     try {
       const newOrderId = await checkout();
@@ -80,19 +87,25 @@ export default function CartPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-[#daa520] mb-8">Your Cart</h1>
+      <h1 className="text-3xl font-bold text-[#daa520] mb-8">{showCheckoutForm ? 'Checkout' : 'Your Cart'}</h1>
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <div className="card rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-[#e2e2e2] mb-4">Items ({totalItems})</h2>
-            
-            <div className="divide-y divide-[#3a3a3a]">
-              {cart.lineItems.map((item) => (
-                <CartItem key={item.id} item={item} />
-              ))}
+          {!showCheckoutForm ? (
+            <div className="card rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-[#e2e2e2] mb-4">Items ({totalItems})</h2>
+              
+              <div className="divide-y divide-[#3a3a3a]">
+                {cart.lineItems.map((item) => (
+                  <CartItem key={item.id} item={item} />
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="card rounded-lg p-6">
+              <CheckoutAddressForm />
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-1">
@@ -119,12 +132,14 @@ export default function CartPage() {
               disabled={isCheckingOut || loading}
               className="w-full btn-primary py-3 px-4 rounded-md text-center font-medium"
             >
-              {isCheckingOut ? 'Processing...' : 'Checkout'}
+              {isCheckingOut ? 'Processing...' : showCheckoutForm ? 'Complete Order' : 'Proceed to Checkout'}
             </button>
             
-            <p className="text-xs text-[#a0a0a0] mt-4 text-center">
-              Shipping to Sydney, Australia only
-            </p>
+            {!showCheckoutForm && (
+              <p className="text-xs text-[#a0a0a0] mt-4 text-center">
+                Shipping to Sydney, Australia only
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -25,7 +25,7 @@ export function logApiResponse(name: string, response: any, error?: any) {
       
       // Log first result if available
       if (response.body.results.length > 0) {
-        console.log('First result sample:', JSON.stringify(response.body.results[0], null, 2).substring(0, 500) + '...');
+        console.log('First result sample:', JSON.stringify(response.body.results[0], null, 2).substring(0, 3000) + '...');
       } else {
         console.log('No results found in response');
       }

@@ -24,8 +24,18 @@ export const formatPrice = (centAmount: number, currencyCode: string = 'AUD'): s
                         productData.description?.['en'] || 
                         '';
     
-    // Get price from master variant
-    const price = masterVariant.prices?.[0];
+    // Get price from master variant - filter for special series channel if multiple prices exist
+    const allPrices = masterVariant.prices || [];
+    let price;
+    
+    // First try to find a price with the specific channel
+    price = allPrices.find((p: any) => p.channel?.id === '5e38376e-5e73-4311-b3b8-1196a41be12f');
+    
+    // If no channel-specific price found, fall back to any price
+    if (!price && allPrices.length > 0) {
+      price = allPrices[0];
+    }
+    
     const formattedPrice = price 
       ? formatPrice(price.value.centAmount, price.value.currencyCode) 
       : 'Price not available';

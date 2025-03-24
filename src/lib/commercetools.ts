@@ -2,13 +2,15 @@ import { apiRoot } from './client';
 import { 
   Cart, 
   MyCartUpdateAction,
+  ProductProjectionPagedQueryResponse,
   Order,
   Address
 } from '@commercetools/platform-sdk';
 import { logApiResponse } from './commerce-debug';
 
-// Product Selection constants
+// Product Selection and Channel constants
 const WITCHER_PRODUCT_SELECTION_ID = 'c596663f-797e-44b5-993a-d0ae6f5108e4';
+const SPECIAL_SERIES_CHANNEL_ID = '5e38376e-5e73-4311-b3b8-1196a41be12f';
 const SHIPPING_METHOD_ID = '767b2262-41e8-4dfb-84f3-ccb720edfb34';
 
 // Default shipping address
@@ -36,7 +38,11 @@ export async function fetchWitcherBooks(): Promise<any> {
           value: WITCHER_PRODUCT_SELECTION_ID
         }
       },
-      productProjectionParameters: {},
+      productProjectionParameters: {
+        priceChannel: SPECIAL_SERIES_CHANNEL_ID,
+        priceCurrency: "AUD", 
+        priceCountry: "AU"
+      },
       limit: 20,
       offset: 0,
       sort: [
@@ -51,7 +57,7 @@ export async function fetchWitcherBooks(): Promise<any> {
       }
     };
     
-    console.log('Using search query:', JSON.stringify(searchQuery, null, 2));
+   // console.log('Using search query:', JSON.stringify(searchQuery, null, 2));
     
     // Make the API call to the products search endpoint
     const response = await apiRoot
@@ -62,7 +68,7 @@ export async function fetchWitcherBooks(): Promise<any> {
       })
       .execute();
     
-    logApiResponse('Witcher Books Search', response);
+   // logApiResponse('Witcher Books Search', response);
     
     // If no results, try a simpler query
     if (response.body.results.length === 0) {
@@ -86,7 +92,7 @@ export async function fetchWitcherBooks(): Promise<any> {
     }
     
     return response.body;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching Witcher books:', error);
     if (error.body) {
       console.error('Error details:', error.body);
@@ -106,7 +112,18 @@ export async function createCart(): Promise<Cart> {
           country: 'AU',
           inventoryMode: 'ReserveOnOrder',
           taxMode: 'Platform',
-          shippingAddress: DEFAULT_SHIPPING_ADDRESS
+          shippingAddress: DEFAULT_SHIPPING_ADDRESS,
+          // Set the price selection for the special series channel
+          custom: {
+            type: {
+              typeId: 'type',
+              key: 'custom-type-cart'
+            },
+            fields: {
+              channelOrigin: SPECIAL_SERIES_CHANNEL_ID,
+              site: "Witcher series site"
+            }
+          }
         }
       })
       .execute();
@@ -161,7 +178,11 @@ export async function addToCart(cartId: string, version: number, productId: stri
     {
       action: 'addLineItem',
       productId,
-      quantity
+      quantity,
+      distributionChannel: {
+        id: SPECIAL_SERIES_CHANNEL_ID,
+        typeId: 'channel'
+      }
     }
   ]);
 }
